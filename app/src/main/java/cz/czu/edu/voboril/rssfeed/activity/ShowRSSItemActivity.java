@@ -1,4 +1,4 @@
-package cz.czu.edu.voboril.rssfeed;
+package cz.czu.edu.voboril.rssfeed.activity;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -20,6 +20,11 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import cz.czu.edu.voboril.rssfeed.Constants;
+import cz.czu.edu.voboril.rssfeed.R;
+import cz.czu.edu.voboril.rssfeed.models.ItemRSS;
+import cz.czu.edu.voboril.rssfeed.tasks.GetBitmapAsyncTask;
+
 public class ShowRSSItemActivity extends AppCompatActivity {
     TextView title, description;
     ImageView imageView;
@@ -33,29 +38,32 @@ public class ShowRSSItemActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        final Bundle exteas = getIntent().getExtras();
+        final Bundle extras = getIntent().getExtras();
+        ItemRSS item = null;
+
+        if (extras!=null){
+            item = (ItemRSS) extras.getSerializable(Constants.CURRENT_RSS_ITEM_KEY);
+        }
 
         title = (TextView) findViewById(R.id.textView);
         imageView = (ImageView) findViewById(R.id.imageView);
         description = (TextView) findViewById(R.id.textView2);
         link = (Button) findViewById(R.id.button);
 
-        if (exteas != null) {
-            title.setText(exteas.getString("title"));
-            description.setText(exteas.getString("description"));
+        if (item != null) {
+            title.setText(item.getTitle());
+            description.setText(item.getDescription());
 
-            imgVal = BitmapFactory.decodeFile(exteas.getString("enclosure"));
-            System.out.println("MYLOG > filePath > " + exteas.getString("enclosure"));
-            imageView.setImageBitmap(imgVal);
+            GetBitmapAsyncTask bitmapAsyncTask = new GetBitmapAsyncTask(imageView);
+            bitmapAsyncTask.execute(item.getImageUrl());
 
-
-
+            final ItemRSS finalItem = item;
             link.setOnClickListener(new View.OnClickListener() {
 
                 @Override
                 public void onClick(View v) {
                     // TODO Auto-generated method stub
-                    Intent intent2 = new Intent(Intent.ACTION_VIEW, Uri.parse(exteas.getString("link")));
+                    Intent intent2 = new Intent(Intent.ACTION_VIEW, Uri.parse(finalItem.getLink()));
                     startActivity(intent2);
                 }
             });
@@ -69,3 +77,4 @@ public class ShowRSSItemActivity extends AppCompatActivity {
     }
 
 }
+
