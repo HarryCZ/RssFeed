@@ -1,7 +1,6 @@
-package cz.czu.edu.voboril.rssfeed;
+package cz.czu.edu.voboril.rssfeed.activity;
 
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -15,11 +14,23 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import org.xmlpull.v1.XmlPullParserException;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+import cz.czu.edu.voboril.rssfeed.Constants;
+import cz.czu.edu.voboril.rssfeed.R;
+import cz.czu.edu.voboril.rssfeed.interfaces.GetRssResponseInterface;
+import cz.czu.edu.voboril.rssfeed.models.ItemRSS;
+import cz.czu.edu.voboril.rssfeed.tasks.GetRssAsyncTask;
+import cz.czu.edu.voboril.rssfeed.utils.Utils;
+
+public class MainActivity extends AppCompatActivity implements GetRssResponseInterface{
     ListView newsLayout;
     private String rssUrl="http://www.rozhlas.cz/zpravy/rss_aktualne";
     private List<ItemRSS> rssItems = new ArrayList<ItemRSS>();
@@ -34,39 +45,9 @@ public class MainActivity extends AppCompatActivity {
 
         newsLayout = (ListView) findViewById(R.id.listView);
 
-        XMLTools xmlTools = new XMLTools(this);
-        xmlTools.setURL(rssUrl);
-        xmlTools.getXML();
-
-        while (xmlTools.parsingDone);
-
-        rssItems = xmlTools.getRSSItems();
-
-        final int arrSize = rssItems.size();
-
-        final ArrayList<String> itemTitles = new ArrayList<String>();
-        for (int i = 0; i < arrSize; i++) {
-            itemTitles.add(rssItems.get(i).getTitle());
-        }
-
-        final ArrayAdapter adapter = new ArrayAdapter(this,
-                R.layout.content_list_view, itemTitles);
-        newsLayout.setAdapter(adapter);
-
-        newsLayout.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                int itemPosition = position;
-                ItemRSS itemValue = (ItemRSS) rssItems.get(itemPosition);
-
-                Intent intent = new Intent(getApplicationContext(), ShowRSSItemActivity.class);
-                intent.putExtra("title",itemValue.getTitle());
-                intent.putExtra("link",itemValue.getLink());
-                intent.putExtra("description",itemValue.getDescription());
-                intent.putExtra("enclosure", itemValue.getEnclosure());
-                startActivity(intent);
-            }
-        });
+        GetRssAsyncTask getRssAsyncTask = new GetRssAsyncTask(MainActivity.this);
+        getRssAsyncTask.delegate = this;
+        getRssAsyncTask.execute(rssUrl);
     }
 
     @Override
@@ -91,6 +72,44 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void deliverResult(File xmlFile) {
+        try {
+            rssItems = Utils.xmlParseAndStore(xmlFile);
+            handleResult();
+            //TODO: exceptions by sa mali handlovat
+        } catch (XmlPullParserException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void handleResult(){
+        final int arrSize = rssItems.size();
+
+        final ArrayList<String> itemTitles = new ArrayList<String>();
+        for (int i = 0; i < arrSize; i++) {
+            itemTitles.add(rssItems.get(i).getTitle());
+        }
+
+        final ArrayAdapter adapter = new ArrayAdapter(this,
+                R.layout.content_list_view, itemTitles);
+        newsLayout.setAdapter(adapter);
+
+        newsLayout.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                int itemPosition = position;
+                ItemRSS currentItem = (ItemRSS) rssItems.get(itemPosition);
+
+                Intent intent = new Intent(getApplicationContext(), ShowRSSItemActivity.class);
+                intent.putExtra(Constants.CURRENT_RSS_ITEM_KEY,currentItem);
+                startActivity(intent);
+            }
+        });
     }
 
     private class StableArrayAdapter extends ArrayAdapter<String> {

@@ -13,7 +13,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
+            android:name=".activity.MainActivity"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
@@ -23,7 +23,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ShowRSSItemActivity"
+            android:name=".activity.ShowRSSItemActivity"
             android:label="@string/title_activity_show_rssitem"
             android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
